@@ -1,0 +1,33 @@
+services:
+  app:
+    container_name: ${APP_NAME:-node-service}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    
+    # 权限对齐
+    user: "${UID:-1000}:${GID:-1000}"
+
+    env_file:
+      - .env
+
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+    volumes:
+      # 挂载宿主机项目代码，便于本地改代码实时同步
+      - ./:/app
+      # 【核心防御卷】：匿名卷保护容器内的 node_modules，防止被宿主机覆盖
+      - /app/node_modules
+      # 数据目录
+      - ${DATA_DIR:-./data}:/app/data
+
+    # 开发热重载命令
+    command: npm run dev
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

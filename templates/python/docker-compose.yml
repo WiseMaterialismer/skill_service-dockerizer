@@ -1,0 +1,33 @@
+services:
+  app:
+    container_name: ${APP_NAME:-python-service}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    
+    # 【Linux/WSL 关键防护】保持宿主机与容器内用户 UID/GID 一致，防止生成的文件锁死为 root
+    user: "${UID:-1000}:${GID:-1000}"
+
+    env_file:
+      - .env
+
+    # 端口映射：宿主机端口:容器内端口
+    ports:
+      - "${APP_PORT:-8000}:8000"
+
+    volumes:
+      # 【核心：源码实时映射】宿主机修改代码，容器毫秒级响应
+      - ./app:/app/app
+      # 数据持久化目录（SQLite、日志、上传等）
+      - ${DATA_DIR:-./data}:/app/data
+
+    # 开发热重载命令（如果使用 FastAPI/Uvicorn，开启 --reload）
+    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+    # 【防爆盘策略】限制容器标准输出日志大小
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
